@@ -1,0 +1,3 @@
+C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/cmake-build-debug/CMakeFiles/semestral.dir
+C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/cmake-build-debug/CMakeFiles/rebuild_cache.dir

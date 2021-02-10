@@ -1,0 +1,34 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/ext.h
+stdbool.h
+-
+stdlib.h
+-
+stdint.h
+-
+string.h
+-
+math.h
+-
+
+C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/main.c
+stdio.h
+-
+ext.h
+C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/ext.h
+string.h
+-
+stdlib.h
+-
+ctype.h
+-
+math.h
+-
+
