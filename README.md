@@ -1,1 +1,2 @@
 # ZOSsemestral
+vytvoření vlastního filesystemu
