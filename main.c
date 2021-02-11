@@ -171,6 +171,7 @@ int main(int argc, char **argv) {
             fread(&inode_bitmap, sizeof(inode_bitmap), 1, fptr);
             fread(&data_bitmap, sizeof(data_bitmap), 1, fptr);
 
+            //nastaveni cesty
             struct pseudo_inode act_dir_inode;
             if(!set_inode_by_path(&act_dir_inode, path, &sb, fptr, &act_path_inode)) {
                 printf("Path does not exist.\n");
@@ -178,11 +179,6 @@ int main(int argc, char **argv) {
                 continue;
             }
             //printf("nodeid:%d | isDirectory:%d\n",act_dir_inode.nodeid, act_dir_inode.isDirectory);
-
-
-            fseek(fptr, sb.inode_start_address, SEEK_SET);  //nastaveni fseek na inode aktualni slozky TODO - nastaveno na root, dodelat obecne
-            fread(&act_dir_inode, sizeof(struct pseudo_inode), 1, fptr);
-
 
             //overeni, ze lze pridat soubor do cilove slozky
             int act_dir_free_file_id = 0;
