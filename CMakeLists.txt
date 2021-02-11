@@ -3,4 +3,4 @@ project(semestral C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(semestral main.c)
+add_executable(semestral main.c ext.c commands.c commands.h)

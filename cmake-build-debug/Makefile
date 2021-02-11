@@ -142,6 +142,60 @@ semestral/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\semestral.dir\build.make CMakeFiles/semestral.dir/build
 .PHONY : semestral/fast
 
+commands.obj: commands.c.obj
+
+.PHONY : commands.obj
+
+# target to build an object file
+commands.c.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\semestral.dir\build.make CMakeFiles/semestral.dir/commands.c.obj
+.PHONY : commands.c.obj
+
+commands.i: commands.c.i
+
+.PHONY : commands.i
+
+# target to preprocess a source file
+commands.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\semestral.dir\build.make CMakeFiles/semestral.dir/commands.c.i
+.PHONY : commands.c.i
+
+commands.s: commands.c.s
+
+.PHONY : commands.s
+
+# target to generate assembly for a file
+commands.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\semestral.dir\build.make CMakeFiles/semestral.dir/commands.c.s
+.PHONY : commands.c.s
+
+ext.obj: ext.c.obj
+
+.PHONY : ext.obj
+
+# target to build an object file
+ext.c.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\semestral.dir\build.make CMakeFiles/semestral.dir/ext.c.obj
+.PHONY : ext.c.obj
+
+ext.i: ext.c.i
+
+.PHONY : ext.i
+
+# target to preprocess a source file
+ext.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\semestral.dir\build.make CMakeFiles/semestral.dir/ext.c.i
+.PHONY : ext.c.i
+
+ext.s: ext.c.s
+
+.PHONY : ext.s
+
+# target to generate assembly for a file
+ext.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\semestral.dir\build.make CMakeFiles/semestral.dir/ext.c.s
+.PHONY : ext.c.s
+
 main.obj: main.c.obj
 
 .PHONY : main.obj
@@ -178,6 +232,12 @@ help:
 	@echo ... edit_cache
 	@echo ... rebuild_cache
 	@echo ... semestral
+	@echo ... commands.obj
+	@echo ... commands.i
+	@echo ... commands.s
+	@echo ... ext.obj
+	@echo ... ext.i
+	@echo ... ext.s
 	@echo ... main.obj
 	@echo ... main.i
 	@echo ... main.s

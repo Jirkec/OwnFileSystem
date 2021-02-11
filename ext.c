@@ -1,47 +1,9 @@
 #include "ext.h"
 
-typedef unsigned char u_char;
-
-struct superblock {
-    char signature[10];              //login autora FS
-    char volume_descriptor[20];     //popis vygenerovaného FS
-    int32_t disk_size;              //celkova velikost VFS
-    int32_t cluster_size;           //velikost clusteru
-    int32_t cluster_count;          //pocet clusteru
-    int32_t cluster_free_count;     //pocet volnych clusteru
-    int32_t inodes_count;           //pocet inodu
-    int32_t inodes_free_count;      //pocet volndych inodu
-    int32_t bitmapi_size;           //počet prvku pole bitmapy inodes
-    int32_t bitmapi_start_address;  //adresa pocatku bitmapy i-uzlů
-    int32_t bitmap_size;            //počet prvku pole bitmapy datových bloků (cluesterů)
-    int32_t bitmap_start_address;   //adresa pocatku bitmapy datových bloků
-    int32_t inode_start_address;    //adresa pocatku  i-uzlů
-    int32_t data_start_address;     //adresa pocatku datovych bloku
-};
-
-struct pseudo_inode {
-    int32_t nodeid;                 //ID i-uzlu, pokud ID = ID_ITEM_FREE, je polozka volna
-    bool isDirectory;               //soubor, nebo adresar
-    int8_t references;              //počet odkazů na i-uzel, používá se pro hardlinky
-    int32_t file_size;              //velikost souboru v bytech
-    int32_t direct1;                // 1. přímý odkaz na datové bloky
-    int32_t direct2;                // 2. přímý odkaz na datové bloky
-    int32_t direct3;                // 3. přímý odkaz na datové bloky
-    int32_t direct4;                // 4. přímý odkaz na datové bloky
-    int32_t direct5;                // 5. přímý odkaz na datové bloky
-    int32_t indirect1;              // 1. nepřímý odkaz (odkaz - datové bloky)
-    int32_t indirect2;              // 2. nepřímý odkaz (odkaz - odkaz - datové bloky)
-};
-
-struct directory_item {
-    int32_t inode;                   // inode odpovídající souboru
-    char item_name[12];              //8+3 + /0 C/C++ ukoncovaci string znak
-};
-
 // funkce pro predvyplneni struktury sb s nastavenim velikosti disku
-int fill_sb(struct superblock *sb, int disk_size) {
-   strcpy(sb->signature, "<=vesely=>");
-   strcpy(sb->volume_descriptor, "<==semestral ZOS===>");
+int fill_sb(superblock *sb, int disk_size) {
+    strcpy(sb->signature, "<=vesely=>");
+    strcpy(sb->volume_descriptor, "<==semestral ZOS===>");
 
     sb->cluster_size = CLUSTER_SIZE;                      // takže max. počet "souborových" položek na cluster jsou 2, protože sizeof(directory_item) = 16B
     sb->inodes_count = INODES_COUNT;                      //max pocet souboru v systemu, bylo by dobry aby to blyo delitolny 8, není nutné
@@ -49,11 +11,11 @@ int fill_sb(struct superblock *sb, int disk_size) {
     sb->bitmapi_size = BITMAPI_SIZE;                      //(int)ceil(sb->inodes_count / 8);  chtel sem udelat dynamicky, ale neni to mozne
     sb->bitmap_size =  BITMAP_SIZE;                       //(int)ceil(sb->cluster_count / 8);
 
-    sb->bitmapi_start_address = sizeof(struct superblock);                                  // konec sb
+    sb->bitmapi_start_address = sizeof(superblock);                                  // konec sb
     sb->bitmap_start_address = sb->bitmapi_start_address + sb->bitmapi_size;  // konec bitmapy inodes, zaokrouhluje vždy nahoru
     sb->inode_start_address = sb->bitmap_start_address + sb->bitmap_size;   // konec bit mapy clusteru, viz. inode_bitmap,
-                                                                                            // jeden cluster je jeden bit (obsazeno/volne), stejně tak i inodex
-    sb->data_start_address = sb->inode_start_address + sb->inodes_count * sizeof(struct pseudo_inode);    //konec inodes, data konci na disk_size
+    // jeden cluster je jeden bit (obsazeno/volne), stejně tak i inodex
+    sb->data_start_address = sb->inode_start_address + sb->inodes_count * sizeof(pseudo_inode);    //konec inodes, data konci na disk_size
 
     sb->cluster_count = (int) floor(disk_size - sb->data_start_address)/CLUSTER_SIZE;   //zbyle misto vydelim velikosti clusteru, dostanu pocet clusterů
     sb->cluster_free_count = sb->cluster_count;
@@ -64,14 +26,14 @@ int fill_sb(struct superblock *sb, int disk_size) {
     }
 
     sb->disk_size = sb->data_start_address + (sb->cluster_count * sb->cluster_size);   //zadana velikost nemusi byt realna velikost,
-                                                                                       // protoze (disk_size - data_start_address) nemusi byt delitelna velikosti clusteru
+    // protoze (disk_size - data_start_address) nemusi byt delitelna velikosti clusteru
     printf("Actual size of disk:%dB (%d clusters [%dB])\n",sb->disk_size, sb->cluster_count, sb->cluster_size);
-   return 0;
+    return 0;
 }
 
-void printSb(struct superblock *sb){
+void printSb(superblock *sb){
     printf("print superblock\n");
-    printf("sizeof(superblock) %d\n", sizeof(struct superblock));
+    printf("sizeof(superblock) %d\n", sizeof(superblock));
     printf("signature %s [%d]\n", sb->signature, sizeof(sb->signature));
     printf("volume_descriptor %s [%d]\n", sb->volume_descriptor, sizeof(sb->volume_descriptor));
     printf("disk_size %d\n", sb->disk_size);
@@ -162,24 +124,69 @@ int get_num_of_char_in_string(char *string, char find){
     return count;
 }
 
-void set_inode_by_nodeid(FILE *fptr,struct superblock *sb, int nodeid, struct pseudo_inode *inode){
+void set_inode_by_nodeid(FILE *fptr,superblock *sb, int nodeid, pseudo_inode *inode){
     fseek(fptr, sb->inode_start_address                            //zacatek dat inodu
-                + (nodeid * sizeof(struct pseudo_inode) ) , SEEK_SET); //zacatek dat slozky
-    fread(inode, sizeof(struct pseudo_inode), 1, fptr);
+                + (nodeid * sizeof(pseudo_inode) ) , SEEK_SET); //zacatek dat slozky
+    fread(inode, sizeof(pseudo_inode), 1, fptr);
 }
 
-bool set_dir_by_name(FILE *fptr,struct superblock *sb, struct pseudo_inode *act_dir_inode, char *name){
+bool set_dir_by_name(FILE *fptr,superblock *sb, pseudo_inode *act_dir_inode, pseudo_inode *dir_inode_to_set, char *name){
     bool found = false;
     for (int i = 0; i < FILES_IN_FOLDER_COUNT; i++) {
-        struct directory_item act_dir_content_file;
+        directory_item act_dir_content_file;
         fseek(fptr, sb->data_start_address                          //zacatek dat
-                        + (act_dir_inode->direct1 * sizeof(CLUSTER_SIZE) ) //zacatek dat slozky
-                        + (i * sizeof(struct directory_item) ), SEEK_SET); //zacatek dat dir itemu
-        fread(&act_dir_content_file, sizeof(struct directory_item), 1, fptr);
+                    + (act_dir_inode->direct1 * sizeof(CLUSTER_SIZE) ) //zacatek dat slozky
+                    + (i * sizeof(directory_item) ), SEEK_SET); //zacatek dat dir itemu
+        fread(&act_dir_content_file, sizeof(directory_item), 1, fptr);
         if(strcmp(act_dir_content_file.item_name, name) == 0){
-            found = true;
-            struct pseudo_inode tmp;
+            pseudo_inode tmp;
             set_inode_by_nodeid(fptr, sb, act_dir_content_file.inode, &tmp);
+            if(tmp.isDirectory) {
+                *dir_inode_to_set = tmp;
+                return true;
+            }
+        }
+    }
+
+    return found;
+}
+
+bool set_file_by_name(FILE *fptr,superblock *sb, pseudo_inode *act_dir_inode, pseudo_inode *dir_inode_to_set, char *name){
+    bool found = false;
+    for (int i = 0; i < FILES_IN_FOLDER_COUNT; i++) {
+        directory_item act_dir_content_file;
+        fseek(fptr, sb->data_start_address                          //zacatek dat
+                    + (act_dir_inode->direct1 * sizeof(CLUSTER_SIZE) ) //zacatek dat slozky
+                    + (i * sizeof(directory_item) ), SEEK_SET); //zacatek dat dir itemu
+        fread(&act_dir_content_file, sizeof(directory_item), 1, fptr);
+        //printf("found dir_item-> nodeid:%d | name:%s\n",act_dir_content_file.inode, act_dir_content_file.item_name);
+        if(strcmp(act_dir_content_file.item_name, name) == 0){
+            pseudo_inode tmp;
+            set_inode_by_nodeid(fptr, sb, act_dir_content_file.inode, &tmp);
+            if(!tmp.isDirectory) {
+                *dir_inode_to_set = tmp;
+                return true;
+            }
+        }
+    }
+
+    return found;
+}
+
+bool set_inode_by_name(FILE *fptr,superblock *sb, pseudo_inode *act_dir_inode, pseudo_inode *dir_inode_to_set, char *name){
+    bool found = false;
+    for (int i = 0; i < FILES_IN_FOLDER_COUNT; i++) {
+        directory_item act_dir_content_file;
+        fseek(fptr, sb->data_start_address                          //zacatek dat
+                    + (act_dir_inode->direct1 * sizeof(CLUSTER_SIZE) ) //zacatek dat slozky
+                    + (i * sizeof(directory_item) ), SEEK_SET); //zacatek dat dir itemu
+        fread(&act_dir_content_file, sizeof(directory_item), 1, fptr);
+        //printf("found dir_item-> nodeid:%d | name:%s\n",act_dir_content_file.inode, act_dir_content_file.item_name);
+        if(strcmp(act_dir_content_file.item_name, name) == 0){
+            pseudo_inode tmp;
+            set_inode_by_nodeid(fptr, sb, act_dir_content_file.inode, &tmp);
+            *dir_inode_to_set = tmp;
+            return true;
         }
     }
 
@@ -190,8 +197,11 @@ void parse_first_dir_from_path(char *path, char **target){
     *target = strtok(path, "/");
 }
 
-bool set_inode_by_path(struct pseudo_inode *act_dir_inode, char *path, struct superblock *sb, FILE *fptr, struct pseudo_inode *act_path_inode){
+bool set_inode_by_path(pseudo_inode *act_dir_inode, char *path, superblock *sb, FILE *fptr, pseudo_inode *act_path_inode){
     bool result = false;
+    if(act_dir_inode == NULL)
+        *act_dir_inode = *act_path_inode;
+
     if(strcmp(path, "/") == 0){ //nastavim na root
         act_dir_inode->nodeid=0;
         act_dir_inode->isDirectory=true;
@@ -205,27 +215,136 @@ bool set_inode_by_path(struct pseudo_inode *act_dir_inode, char *path, struct su
     if(num_of_dirs_in_path>0) {
         for (int i = 0; i < num_of_dirs_in_path; i++) {
             parse_first_dir_from_path(dirname(path), &path);
-            set_inode_by_path(act_dir_inode, path, sb, fptr, act_path_inode);
+            set_inode_by_path(act_dir_inode, path, sb, fptr, act_dir_inode);
         }
     }else{
         if(strcmp(path, ".") == 0){     //aktualni adresar
             *act_dir_inode = *act_path_inode;
             result = true;
         }else if(strcmp(path, "..") == 0){  //rodic
-            struct directory_item tmp;
-            struct pseudo_inode parrent;
+            directory_item tmp;
             fseek(fptr, sb->data_start_address                                  //zacatek dat
-                               + (act_path_inode->direct1 * CLUSTER_SIZE), SEEK_SET);  //zacatek dat slozky (nazacaku je dir item parent)
-            fread(&tmp, sizeof(struct directory_item), 1, fptr);
+                        + (act_path_inode->direct1 * CLUSTER_SIZE), SEEK_SET);  //zacatek dat slozky (nazacaku je dir item parent)
+            fread(&tmp, sizeof(directory_item), 1, fptr);
             set_inode_by_nodeid(fptr, sb, tmp.inode, act_dir_inode);
             result = true;
         }else{  //slozka v act adresari
-            result = set_dir_by_name(fptr,sb, act_dir_inode, path);
+            result = set_dir_by_name(fptr,sb, act_path_inode, act_dir_inode, path); //path = nazev hledane slozky
         }
     }
 
     return result;
 }
 
+void print_file_content(pseudo_inode *file, FILE *fptr, superblock *sb){
+    u_char buffer[CLUSTER_SIZE+1];
+    memset(buffer, '\0', sizeof(buffer));
+    printf("Printing file:\n");
+    //printf("1:%d 2:%d 3:%d 4:%d 5:%d\n",file->direct1, file->direct2, file->direct3, file->direct4, file->direct5);
+    if(file->direct1 != ID_CLUESTER_FREE) {
+        fseek(fptr, sb->data_start_address + (file->direct1 * CLUSTER_SIZE), SEEK_SET);
+        fread(&buffer, CLUSTER_SIZE, 1, fptr);
+        printf("%s",buffer);
+    }
+    if(file->direct2 != ID_CLUESTER_FREE) {
+        fseek(fptr, sb->data_start_address + (file->direct2 * CLUSTER_SIZE), SEEK_SET);
+        fread(&buffer, CLUSTER_SIZE, 1, fptr);
+        printf("%s",buffer);
+    }
+    if(file->direct3 != ID_CLUESTER_FREE) {
+        fseek(fptr, sb->data_start_address + (file->direct3 * CLUSTER_SIZE), SEEK_SET);
+        fread(&buffer, CLUSTER_SIZE, 1, fptr);
+        printf("%s",buffer);
+    }
+    if(file->direct4 != ID_CLUESTER_FREE) {
+        fseek(fptr, sb->data_start_address + (file->direct4 * CLUSTER_SIZE), SEEK_SET);
+        fread(&buffer, CLUSTER_SIZE, 1, fptr);
+        printf("%s",buffer);
+    }
+    if(file->direct5 != ID_CLUESTER_FREE) {
+        fseek(fptr, sb->data_start_address + (file->direct5 * CLUSTER_SIZE), SEEK_SET);
+        fread(&buffer, CLUSTER_SIZE, 1, fptr);
+        printf("%s",buffer);
+    }
 
-#endif
+    printf("\n");
+}
+
+bool set_diritem_by_inode(FILE *fptr, superblock *sb, int file_nodeid, pseudo_inode *file_parent, directory_item *file_dir_item){
+    directory_item tmp;
+    for(int i = 0; i < FILES_IN_FOLDER_COUNT; i++) {
+        fseek(fptr, sb->data_start_address + (file_parent->direct1 * CLUSTER_SIZE) + (i * sizeof(directory_item)), SEEK_SET);  //nastevni fseek na zavatek dat rodicovskeho adresare
+        fread(&tmp, sizeof(directory_item) , 1, fptr);
+        if(tmp.inode == file_nodeid){
+            *file_dir_item = tmp;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void print_file_info(pseudo_inode *file, pseudo_inode *file_parent, FILE *fptr, superblock *sb){
+    directory_item file_dir_item;
+    if(set_diritem_by_inode(fptr, sb, file->nodeid, file_parent, &file_dir_item)) {
+        printf("name:%s - size:%d[B] - i-node:%d", file_dir_item.item_name, file->file_size, file->nodeid);
+        if (file->direct1 != ID_CLUESTER_FREE) {
+            printf(" - direct1:%d", file->direct1);
+        }
+        if (file->direct2 != ID_CLUESTER_FREE) {
+            printf(" - direct2:%d", file->direct2);
+        }
+        if (file->direct3 != ID_CLUESTER_FREE) {
+            printf(" - direct3:%d", file->direct3);
+        }
+        if (file->direct4 != ID_CLUESTER_FREE) {
+            printf(" - direct4:%d", file->direct4);
+        }
+        if (file->direct5 != ID_CLUESTER_FREE) {
+            printf(" - direct5:%d", file->direct5);
+        }
+        printf("\n");
+    }else{
+        printf("Info cant be printed. Cannot find directory item.\n");
+    }
+
+}
+
+bool export_file(pseudo_inode *file, char *target_name, FILE *fptr, superblock *sb){
+    remove(target_name);
+    FILE *target = fopen(target_name, "wb");
+    if (target == NULL) {
+        printf("%s |%s|\n", strerror(errno), target_name);
+        return false;
+    }
+
+    u_char buffer[CLUSTER_SIZE+1];
+    memset(buffer, '\0', sizeof(buffer));
+    if(file->direct1 != ID_CLUESTER_FREE) {
+        fseek(fptr, sb->data_start_address + (file->direct1 * CLUSTER_SIZE), SEEK_SET);
+        fread(&buffer, CLUSTER_SIZE, 1, fptr);
+        fwrite(&buffer, strlen(buffer), 1, target);
+    }
+    if(file->direct2 != ID_CLUESTER_FREE) {
+        fseek(fptr, sb->data_start_address + (file->direct2 * CLUSTER_SIZE), SEEK_SET);
+        fread(&buffer, CLUSTER_SIZE, 1, fptr);
+        fwrite(&buffer, strlen(buffer), 1, target);
+    }
+    if(file->direct3 != ID_CLUESTER_FREE) {
+        fseek(fptr, sb->data_start_address + (file->direct3 * CLUSTER_SIZE), SEEK_SET);
+        fread(&buffer, CLUSTER_SIZE, 1, fptr);
+        fwrite(&buffer, strlen(buffer), 1, target);
+    }
+    if(file->direct4 != ID_CLUESTER_FREE) {
+        fseek(fptr, sb->data_start_address + (file->direct4 * CLUSTER_SIZE), SEEK_SET);
+        fread(&buffer, CLUSTER_SIZE, 1, fptr);
+        fwrite(&buffer, strlen(buffer), 1, target);
+    }
+    if(file->direct5 != ID_CLUESTER_FREE) {
+        fseek(fptr, sb->data_start_address + (file->direct5 * CLUSTER_SIZE), SEEK_SET);
+        fread(&buffer, CLUSTER_SIZE, 1, fptr);
+        fwrite(&buffer, strlen(buffer), 1, target);
+    }
+    fclose(target);
+    return true;
+}

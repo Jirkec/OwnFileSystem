@@ -76,6 +76,18 @@
 				</MakeCommands>
 			</Target>
 		</Build>
+		<Unit filename="C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/commands.c">
+			<Option target="semestral"/>
+		</Unit>
+		<Unit filename="C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/commands.h">
+			<Option target="semestral"/>
+		</Unit>
+		<Unit filename="C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/ext.c">
+			<Option target="semestral"/>
+		</Unit>
+		<Unit filename="C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/ext.h">
+			<Option target="semestral"/>
+		</Unit>
 		<Unit filename="C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/main.c">
 			<Option target="semestral"/>
 		</Unit>

@@ -1,4 +1,6 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/semestral.dir/commands.c.obj"
+  "CMakeFiles/semestral.dir/ext.c.obj"
   "CMakeFiles/semestral.dir/main.c.obj"
   "libsemestral.dll.a"
   "semestral.exe"

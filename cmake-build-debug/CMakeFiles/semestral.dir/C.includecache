@@ -6,6 +6,18 @@
 
 #IncludeRegexTransform: 
 
+C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/commands.c
+commands.h
+C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/commands.h
+
+C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/commands.h
+ext.h
+C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/ext.h
+
+C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/ext.c
+ext.h
+C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/ext.h
+
 C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/ext.h
 stdbool.h
 -
@@ -20,11 +32,5 @@ stdio.h
 math.h
 -
 libgen.h
--
-
-C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/main.c
-ext.h
-C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/ext.h
-ctype.h
 -
 

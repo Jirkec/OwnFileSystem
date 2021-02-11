@@ -93,12 +93,12 @@ clean: CMakeFiles/semestral.dir/clean
 CMakeFiles/semestral.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\semestral.dir\build.make CMakeFiles/semestral.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\semestral.dir\build.make CMakeFiles/semestral.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=C:\Users\uzivatel\Documents\skola\3rocnik\ZOS\semestralZOS\ZOSsemestral\cmake-build-debug\CMakeFiles --progress-num=1,2 "Built target semestral"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=C:\Users\uzivatel\Documents\skola\3rocnik\ZOS\semestralZOS\ZOSsemestral\cmake-build-debug\CMakeFiles --progress-num=1,2,3,4 "Built target semestral"
 .PHONY : CMakeFiles/semestral.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/semestral.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start C:\Users\uzivatel\Documents\skola\3rocnik\ZOS\semestralZOS\ZOSsemestral\cmake-build-debug\CMakeFiles 2
+	$(CMAKE_COMMAND) -E cmake_progress_start C:\Users\uzivatel\Documents\skola\3rocnik\ZOS\semestralZOS\ZOSsemestral\cmake-build-debug\CMakeFiles 4
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 CMakeFiles/semestral.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start C:\Users\uzivatel\Documents\skola\3rocnik\ZOS\semestralZOS\ZOSsemestral\cmake-build-debug\CMakeFiles 0
 .PHONY : CMakeFiles/semestral.dir/rule
