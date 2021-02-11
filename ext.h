@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdio.h>
 #include <math.h>
 
 #define CLUSTER_SIZE 32             //bylo by dobre, aby byl dělitelný 16 - tj. sizeof(struct directory_item)
@@ -144,7 +145,6 @@ int set_bit_on_position_in_bitmap(u_char data_bitmap, int position, int bit){
     int i;
     u_char temp = 0b10000000;     //chci nastavit pozici na 1 (0->1), pokud chci nastavit pozici na 0 (1->0), tak pouziju jeji negaci
     for(i = 0; i <= position; i++){
-        //printf("tmp bit:%d",temp);
         if(position == i) {
             if (bit == 1) {
                 data_bitmap = data_bitmap | temp;
@@ -154,12 +154,26 @@ int set_bit_on_position_in_bitmap(u_char data_bitmap, int position, int bit){
         }
         temp = temp >> 1;
     }
-    //printf("\nsetted: %d\n", data_bitmap);
     return data_bitmap;
 }
 
 int get_needed_clusters(int file_size){
-    return (int) (file_size>0 ? ceil(file_size / CLUSTER_SIZE) : 0);
+    return ((int) (file_size>0 ? ceil((double)file_size / (double)CLUSTER_SIZE) : 0));
+}
+
+void printBits(size_t const size, void const * const ptr)
+{
+    unsigned char *b = (unsigned char*) ptr;
+    unsigned char byte;
+    int i, j;
+
+    for (i = size-1; i >= 0; i--) {
+        for (j = 7; j >= 0; j--) {
+            byte = (b[i] >> j) & 1;
+            printf("%u", byte);
+        }
+    }
+    puts("");
 }
 
 #endif

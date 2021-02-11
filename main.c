@@ -7,12 +7,9 @@
 // parametry FS jsou schválně nesmyslně malé, aby byl layout jednoduše vidět nástrojem xxd nebo jiným bin. prohlížečem
 // read sekce pak přečte binární soubor FS a názorně vypisuje obsah
 
-#include <stdio.h>
 #include "ext.h"
-#include <string.h>
-#include <stdlib.h>
 #include <ctype.h>
-#include <math.h>
+#include <libgen.h>
 
 
 int main(int argc, char **argv) {
@@ -139,16 +136,29 @@ int main(int argc, char **argv) {
 
         //incp
         if (strstr(command, "incp") != NULL) {
-            char s1[30];    //source na disku
-            char s2[30];    //dest v fs.ext
+            char s1[60];    //source na disku
+            char s2[60];    //dest v fs.ext
             char file_name[12];
+            char *path;
             command_recognized = 1;
 
-            sscanf(line, "%29s %29s %29s", command, s1, s2);
+            sscanf(line, "%29s %59s %59s", command, s1, s2);
             //printf("print input parsed: |%s| |%s| |%s|\n", command, s1, s2);
+            //incp soubor.txt soubor.txt
 
-            //parsovani nazvu souboru - TODO rozdelit cestu
-            strcpy(file_name, s2);
+            //parsovani nazvu souboru - cesty
+            char *path_parse_tmp1 = strdup(s2);
+            char *path_parse_tmp2 = strdup(s2);
+            path = dirname(path_parse_tmp1);
+            char * tmp_file_name = basename(path_parse_tmp2);
+            if(strlen(tmp_file_name)>12){
+                printf("File name is too long. Maximum is 12, %d given.\n",strlen(tmp_file_name));
+                continue;
+            }
+            strcpy(file_name, tmp_file_name);
+            //printf("path: |%s| filename:|%s|\n", path, file_name);
+
+
 
             FILE *fptr = fopen(name, "rb+");
             if (fptr == NULL) {
@@ -169,17 +179,18 @@ int main(int argc, char **argv) {
 
 
             //overeni, ze lze pridat soubor do cilove slozky
-            int act_dir_free_file_id = ID_ITEM_FREE;
+            int act_dir_free_file_id;
             fseek(fptr, sb.data_start_address, SEEK_SET); //nastaveni fseek na data aktualni slozky TODO - nastaveno na root, dodelat obecne
             for (int i = 0; i < FILES_IN_FOLDER_COUNT; i++) {
                 struct directory_item act_dir_content_file;
                 fread(&act_dir_content_file, sizeof(struct directory_item), 1, fptr);
-                if(act_dir_content_file.inode != ID_ITEM_FREE){
+                if(act_dir_content_file.inode == ID_ITEM_FREE){
                     act_dir_free_file_id = act_dir_content_file.inode;
+                    //printf("act_dir_free_file_id:%d\n",act_dir_free_file_id);
                     break;
                 }
             }
-            if(act_dir_free_file_id >= 0) {
+            if(act_dir_free_file_id == ID_ITEM_FREE) {
                 FILE *fptr1 = fopen(s1, "rb");
                 if (fptr1 == NULL) {
                     printf("Something went wrong with read()! %s |%s|\n", strerror(errno), s1);
@@ -191,15 +202,14 @@ int main(int argc, char **argv) {
                 if (sb.inodes_free_count > 0 && sb.cluster_free_count > 0) {
                     long int file_size = findSize(s1);
                     int needed_cluster_count = get_needed_clusters(file_size);
+                    printf("needed_cluster_count:%d\n",needed_cluster_count);
                     if (sb.cluster_free_count >= needed_cluster_count) {
                         //nasteni nove bitmapy inodes
                         int new_nodeid;
                         for (int i = 0; i < sb.bitmapi_size; i++) {
                             if (inode_bitmap[i] < 0b11111111) {
-                                //printf("before: %d\n", inode_bitmap[i]);
                                 new_nodeid = find_empty_data_node_in_bitmap(inode_bitmap[i]) + (i * 8);
                                 inode_bitmap[i] = set_bit_on_position_in_bitmap(inode_bitmap[i], new_nodeid, 1);
-                                //printf("after: %d\n", inode_bitmap[i]);
                                 break;
                             }
                         }
@@ -213,11 +223,9 @@ int main(int argc, char **argv) {
                                 for (int i = 0; i < sb.bitmap_size; i++) {
                                     if (data_bitmap[i] < 0b11111111) {
                                         int bitmap_position;
-                                        //printf("before: %d\n", data_bitmap[i]);
                                         bitmap_position = find_empty_data_node_in_bitmap(data_bitmap[i]);
                                         new_file_clusters[j] = bitmap_position + (i * 8);    //pridam do pole novych direct clusteru
-                                        data_bitmap[i] = set_bit_on_position_in_bitmap(data_bitmap[j], bitmap_position ,1);
-                                        //printf("after: %d\n", data_bitmap[i]);
+                                        data_bitmap[i] = set_bit_on_position_in_bitmap(data_bitmap[i], bitmap_position ,1);
                                         break;
                                     }
                                 }
@@ -225,8 +233,10 @@ int main(int argc, char **argv) {
                         }
                         struct pseudo_inode new_file_inode = {new_nodeid, false, 1, file_size, new_file_clusters[1],
                                                               new_file_clusters[2], new_file_clusters[3],
-                                                              new_file_clusters[4], new_file_clusters[5],};
+                                                              new_file_clusters[4], new_file_clusters[5]};
 
+                        sb.inodes_free_count --;
+                        sb.cluster_free_count = sb.cluster_free_count - needed_cluster_count;
                         //zapis dat - superblock, bitmapy, uprava dir_item ve slozce
                         fseek(fptr, 0, SEEK_SET);   //nastaveni fseek na zacatek
                         fwrite(&sb, sizeof(sb), 1, fptr);
@@ -242,7 +252,6 @@ int main(int argc, char **argv) {
                         int new_file_clusters_increment = 0;
                         while ((fread(buffer, 1, sizeof(buffer), fptr1)) > 0) {
                             int cluster_ofset = new_file_clusters[new_file_clusters_increment];
-                            //printf("cluster_ofset: %d\n",cluster_ofset);
                             if (cluster_ofset > ID_CLUESTER_FREE) {   //overeni, ze vybrany direct neni -1
                                 fseek(fptr, sb.data_start_address + (cluster_ofset * CLUSTER_SIZE),SEEK_SET); //nastaveni fseek na spravnou pozici idclusteru * velikost cluster od zacatku dat
                                 fwrite(&buffer, sizeof(buffer), 1, fptr);
