@@ -9,7 +9,6 @@
 
 #include "ext.h"
 #include <ctype.h>
-#include <libgen.h>
 
 
 int main(int argc, char **argv) {
@@ -20,8 +19,8 @@ int main(int argc, char **argv) {
 
     const char *name = argv[1];
     bool running = true;
-    char act_path[30];
-    strcpy(act_path, "/");
+    char *act_path = "/";
+    struct pseudo_inode act_path_inode = {0, true, 1, CLUSTER_SIZE,0};  //nastaveno na root
 
     printf("Program started. Enter commands.\n");
     while (running){
@@ -159,10 +158,9 @@ int main(int argc, char **argv) {
             //printf("path: |%s| filename:|%s|\n", path, file_name);
 
 
-
             FILE *fptr = fopen(name, "rb+");
             if (fptr == NULL) {
-                printf("Something went wrong with read()! %s |%s|\n", strerror(errno), name);
+                printf("%s |%s|\n", strerror(errno), name);
                 exit(2);
             }
             struct superblock sb = {};
@@ -174,23 +172,33 @@ int main(int argc, char **argv) {
             fread(&data_bitmap, sizeof(data_bitmap), 1, fptr);
 
             struct pseudo_inode act_dir_inode;
+            if(!set_inode_by_path(&act_dir_inode, path, &sb, fptr, &act_path_inode)) {
+                printf("Path does not exist.\n");
+                fclose(fptr);
+                continue;
+            }
+            //printf("nodeid:%d | isDirectory:%d\n",act_dir_inode.nodeid, act_dir_inode.isDirectory);
+
+
             fseek(fptr, sb.inode_start_address, SEEK_SET);  //nastaveni fseek na inode aktualni slozky TODO - nastaveno na root, dodelat obecne
             fread(&act_dir_inode, sizeof(struct pseudo_inode), 1, fptr);
 
 
             //overeni, ze lze pridat soubor do cilove slozky
-            int act_dir_free_file_id;
-            fseek(fptr, sb.data_start_address, SEEK_SET); //nastaveni fseek na data aktualni slozky TODO - nastaveno na root, dodelat obecne
+            int act_dir_free_file_id = 0;
+            int act_dir_free_file_nodeid;
+            fseek(fptr, sb.data_start_address + (act_dir_inode.direct1 * sizeof(CLUSTER_SIZE) ), SEEK_SET); //nastaveni fseek na data aktualni slozky
             for (int i = 0; i < FILES_IN_FOLDER_COUNT; i++) {
                 struct directory_item act_dir_content_file;
                 fread(&act_dir_content_file, sizeof(struct directory_item), 1, fptr);
                 if(act_dir_content_file.inode == ID_ITEM_FREE){
-                    act_dir_free_file_id = act_dir_content_file.inode;
-                    //printf("act_dir_free_file_id:%d\n",act_dir_free_file_id);
+                    act_dir_free_file_nodeid = act_dir_content_file.inode;
+                    //printf("act_dir_free_file_nodeid:%d\n",act_dir_free_file_nodeid);
                     break;
                 }
+                act_dir_free_file_id++;
             }
-            if(act_dir_free_file_id == ID_ITEM_FREE) {
+            if(act_dir_free_file_nodeid == ID_ITEM_FREE) {
                 FILE *fptr1 = fopen(s1, "rb");
                 if (fptr1 == NULL) {
                     printf("Something went wrong with read()! %s |%s|\n", strerror(errno), s1);
@@ -244,8 +252,10 @@ int main(int argc, char **argv) {
                         fwrite(&data_bitmap, sizeof(u_char), sb.bitmap_size, fptr);
                         fseek(fptr, sb.inode_start_address + (new_nodeid * sizeof(struct pseudo_inode)),SEEK_SET);   //nastaveni fseeku na pozici noveho inodu
                         fwrite(&new_file_inode, sizeof(new_file_inode), 1, fptr);
-                        fseek(fptr, sb.data_start_address + (act_dir_inode.direct1 * CLUSTER_SIZE) +sizeof(struct directory_item), SEEK_SET);  //nastaveni fseek na prepsani dir item
-                        fwrite(&new_file, sizeof(new_file), 1,fptr);          // TODO - dodelat ofset volného souboru
+                        fseek(fptr, sb.data_start_address                                                   //adresa na zacatek dat
+                                            + (act_dir_inode.direct1 * CLUSTER_SIZE)                               //na data aktualni slozky
+                                            + (act_dir_free_file_id * sizeof(struct directory_item)), SEEK_SET);   //na data konkretniho souboru
+                        fwrite(&new_file, sizeof(new_file), 1,fptr);
 
                         //zapis dat do clusteru
                         unsigned char buffer[CLUSTER_SIZE] = {0};

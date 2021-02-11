@@ -19,12 +19,12 @@ stdio.h
 -
 math.h
 -
+libgen.h
+-
 
 C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/main.c
 ext.h
 C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/ext.h
 ctype.h
--
-libgen.h
 -
 

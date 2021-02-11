@@ -15,6 +15,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
+#include <libgen.h>
 
 #define CLUSTER_SIZE 32             //bylo by dobre, aby byl dělitelný 16 - tj. sizeof(struct directory_item)
 #define FILES_IN_FOLDER_COUNT 2     //CLUSTER_SIZE / sizeof(struct directory_item)
@@ -175,5 +176,82 @@ void printBits(size_t const size, void const * const ptr)
     }
     puts("");
 }
+
+int get_num_of_char_in_string(char *string, char find){
+    int count = 0;
+    char * tmp;
+    tmp=strchr(string,find);
+    while (tmp!=NULL){
+        tmp=strchr(tmp+1,'s');
+        count++;
+    }
+    return count;
+}
+
+void set_inode_by_nodeid(FILE *fptr,struct superblock *sb, int nodeid, struct pseudo_inode *inode){
+    fseek(fptr, sb->inode_start_address                            //zacatek dat inodu
+                + (nodeid * sizeof(struct pseudo_inode) ) , SEEK_SET); //zacatek dat slozky
+    fread(inode, sizeof(struct pseudo_inode), 1, fptr);
+}
+
+bool set_dir_by_name(FILE *fptr,struct superblock *sb, struct pseudo_inode *act_dir_inode, char *name){
+    bool found = false;
+    for (int i = 0; i < FILES_IN_FOLDER_COUNT; i++) {
+        struct directory_item act_dir_content_file;
+        fseek(fptr, sb->data_start_address                          //zacatek dat
+                        + (act_dir_inode->direct1 * sizeof(CLUSTER_SIZE) ) //zacatek dat slozky
+                        + (i * sizeof(struct directory_item) ), SEEK_SET); //zacatek dat dir itemu
+        fread(&act_dir_content_file, sizeof(struct directory_item), 1, fptr);
+        if(strcmp(act_dir_content_file.item_name, name) == 0){
+            found = true;
+            struct pseudo_inode tmp;
+            set_inode_by_nodeid(fptr, sb, act_dir_content_file.inode, &tmp);
+        }
+    }
+
+    return found;
+}
+
+void parse_first_dir_from_path(char *path, char **target){
+    *target = strtok(path, "/");
+}
+
+bool set_inode_by_path(struct pseudo_inode *act_dir_inode, char *path, struct superblock *sb, FILE *fptr, struct pseudo_inode *act_path_inode){
+    bool result = false;
+    if(strcmp(path, "/") == 0){ //nastavim na root
+        act_dir_inode->nodeid=0;
+        act_dir_inode->isDirectory=true;
+        act_dir_inode->references=1;
+        act_dir_inode->file_size=CLUSTER_SIZE;
+        act_dir_inode->direct1=0;
+        result = true;
+    }
+
+    int num_of_dirs_in_path = get_num_of_char_in_string(path, '/');
+    if(num_of_dirs_in_path>0) {
+        for (int i = 0; i < num_of_dirs_in_path; i++) {
+            parse_first_dir_from_path(dirname(path), &path);
+            set_inode_by_path(act_dir_inode, path, sb, fptr, act_path_inode);
+        }
+    }else{
+        if(strcmp(path, ".") == 0){     //aktualni adresar
+            *act_dir_inode = *act_path_inode;
+            result = true;
+        }else if(strcmp(path, "..") == 0){  //rodic
+            struct directory_item tmp;
+            struct pseudo_inode parrent;
+            fseek(fptr, sb->data_start_address                                  //zacatek dat
+                               + (act_path_inode->direct1 * CLUSTER_SIZE), SEEK_SET);  //zacatek dat slozky (nazacaku je dir item parent)
+            fread(&tmp, sizeof(struct directory_item), 1, fptr);
+            set_inode_by_nodeid(fptr, sb, tmp.inode, act_dir_inode);
+            result = true;
+        }else{  //slozka v act adresari
+            result = set_dir_by_name(fptr,sb, act_dir_inode, path);
+        }
+    }
+
+    return result;
+}
+
 
 #endif
