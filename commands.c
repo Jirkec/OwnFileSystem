@@ -154,32 +154,39 @@ int incp(char *name, pseudo_inode *act_path_inode, char *s1, char *s2, bool prin
                         }
                     }
 
-                    directory_item new_file = {new_nodeid,
-                                               "<=filename=>"}; //nejdriv placehordel a potom nakopiruju nazev
+                    directory_item new_file = {new_nodeid,"<=filename=>"}; //nejdriv placehordel a potom nakopiruju nazev
                     strcpy(new_file.item_name, file_name);
-                    //nastevni cluster bitmapy - zatim pocitam s tim, že data se vejdou do 5 clusteru TODO - overit, ze neni potreba undirected
-                    int new_file_clusters[DIRECT_LINK_COUNT];    // id clusteru noveho souboru - pujde pak do vytvareni pseudo_inode
-                    for (int i = 0; i < DIRECT_LINK_COUNT; i++) {
-                        new_file_clusters[i] = ID_CLUESTER_FREE;
-                    }
-                    //nastavim na -1, pokud je -1 znamena, že není provázán
-                    if (needed_cluster_count > 0) {
-                        for (int j = 0; j < needed_cluster_count; j++) {
-                            for (int i = 0; i < sb.bitmap_size; i++) {
-                                if (data_bitmap[i] < 0b11111111) {
-                                    int bitmap_position;
-                                    bitmap_position = find_empty_data_node_in_bitmap(data_bitmap[i]);
-                                    new_file_clusters[j] = bitmap_position + (i * 8);    //pridam do pole novych direct clusteru
-                                    data_bitmap[i] = set_bit_on_position_in_bitmap(data_bitmap[i], bitmap_position, 1);
-                                    break;
+                    pseudo_inode new_file_inode;
+                        //nastevni cluster bitmapy - pocitam s tim, že data se vejdou do 5 clusteru
+                        int new_file_clusters[DIRECT_LINK_COUNT];    // id clusteru noveho souboru - pujde pak do vytvareni pseudo_inode
+                        for (int i = 0; i < DIRECT_LINK_COUNT; i++) {
+                            new_file_clusters[i] = ID_CLUESTER_FREE; //nastavim na -1, pokud je -1 znamena, že není provázán
+                        }
+                    if(needed_cluster_count <= DIRECT_LINK_COUNT) {
+                        if (needed_cluster_count > 0) {
+                            for (int j = 0; j < needed_cluster_count; j++) {
+                                for (int i = 0; i < sb.bitmap_size; i++) {
+                                    if (data_bitmap[i] < 0b11111111) {
+                                        int bitmap_position;
+                                        bitmap_position = find_empty_data_node_in_bitmap(data_bitmap[i]);
+                                        new_file_clusters[j] =bitmap_position + (i * 8);    //pridam do pole novych direct clusteru
+                                        data_bitmap[i] = set_bit_on_position_in_bitmap(data_bitmap[i], bitmap_position,1);
+                                        break;
+                                    }
                                 }
                             }
                         }
                     }
+
                     int8_t file_type = slink ? TYPE_SLINK : TYPE_FILE;
-                    pseudo_inode new_file_inode = {new_nodeid, file_type, 1, file_size, new_file_clusters[0],
-                                                   new_file_clusters[1], new_file_clusters[2],
-                                                   new_file_clusters[3], new_file_clusters[4]};
+                    new_file_inode.nodeid=new_nodeid;
+                    new_file_inode.isDirectory=file_type;
+                    new_file_inode.file_size=file_size;
+                    new_file_inode.direct1=new_file_clusters[0];
+                    new_file_inode.direct2=new_file_clusters[1];
+                    new_file_inode.direct3=new_file_clusters[2];
+                    new_file_inode.direct4=new_file_clusters[3];
+                    new_file_inode.direct5=new_file_clusters[4];
 
                     sb.inodes_free_count--;
                     sb.cluster_free_count = sb.cluster_free_count - needed_cluster_count;
@@ -189,14 +196,11 @@ int incp(char *name, pseudo_inode *act_path_inode, char *s1, char *s2, bool prin
                     fwrite(&sb, sizeof(sb), 1, fptr);
                     fwrite(&inode_bitmap, sizeof(u_char), sb.bitmapi_size, fptr);
                     fwrite(&data_bitmap, sizeof(u_char), sb.bitmap_size, fptr);
-                    fseek(fptr, sb.inode_start_address + (new_nodeid * sizeof(pseudo_inode)),
-                          SEEK_SET);   //nastaveni fseeku na pozici noveho inodu
+                    fseek(fptr, sb.inode_start_address + (new_nodeid * sizeof(pseudo_inode)),SEEK_SET);   //nastaveni fseeku na pozici noveho inodu
                     fwrite(&new_file_inode, sizeof(new_file_inode), 1, fptr);
-                    fseek(fptr,
-                          sb.data_start_address                                                   //adresa na zacatek dat
-                          +
-                          (act_dir_inode.direct1 * CLUSTER_SIZE)                               //na data aktualni slozky
-                          + (act_dir_free_file_id * sizeof(directory_item)), SEEK_SET);   //na data konkretniho souboru
+                    fseek(fptr,sb.data_start_address                                                   //adresa na zacatek dat
+                                      +(act_dir_inode.direct1 * CLUSTER_SIZE)                               //na data aktualni slozky
+                                      +(act_dir_free_file_id * sizeof(directory_item)), SEEK_SET);   //na data konkretniho souboru
                     fwrite(&new_file, sizeof(new_file), 1, fptr);
 
                     //zapis dat do clusteru

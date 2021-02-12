@@ -70,20 +70,61 @@ typedef struct thedirectory_item {
 // funkce pro predvyplneni struktury sb s nastavenim velikosti disku
 int fill_sb(superblock *sb, int disk_size);
 
+//vypise data superbloku
 void printSb(superblock *sb);
 
+/**
+ * vrati velikost souboru
+ * @param file_name jmeno souboru
+ * @return veliksot souboru
+ */
 long int findSize(char *file_name);
 
+/**
+ * najde prazdny bit
+ * @param data_bitmap
+ * @return pozice bitu
+ */
 int find_empty_data_node_in_bitmap(u_char data_bitmap);
 
+/**
+ * nastavi bit na pozici
+ * @param data_bitmap
+ * @param position
+ * @param bit
+ * @return
+ */
 int set_bit_on_position_in_bitmap(u_char data_bitmap, int position, int bit);
 
+/**
+ * pocet potrebnych clusteru pro ulozeni souboru
+ * @param file_size velikost souboru
+ * @return pocet clusteru
+ */
 int get_needed_clusters(int file_size);
 
+/**
+ * vypise cislo binarne
+ * @param size velikost
+ * @param ptr cislo
+ */
 void printBits(size_t const size, void const * const ptr);
 
+/**
+ * najde char ve stringu
+ * @param string
+ * @param find
+ * @return pozice charu ve strinku
+ */
 int get_num_of_char_in_string(char *string, char find);
 
+/**
+ * nastavi inode podle nodeid
+ * @param fptr soubor
+ * @param sb superblock
+ * @param nodeid
+ * @param inode inode ktera se ma nastavit
+ */
 void set_inode_by_nodeid(FILE *fptr,superblock *sb, int nodeid, pseudo_inode *inode);
 
 /**
@@ -106,6 +147,11 @@ bool set_dir_by_name(FILE *fptr,superblock *sb, pseudo_inode *act_dir_inode, pse
  */
 bool set_file_by_name(FILE *fptr,superblock *sb, pseudo_inode *act_dir_inode, pseudo_inode *dir_inode_to_set, char *name);
 
+/**
+ * vykopiruje prvni dir z cesty
+ * @param path cesta
+ * @param target sem ho ulozi
+ */
 void parse_first_dir_from_path(char *path, char **target);
 
 /**
@@ -119,16 +165,63 @@ void parse_first_dir_from_path(char *path, char **target);
  */
 bool set_inode_by_path(pseudo_inode *act_dir_inode, char *path, superblock *sb, FILE *fptr, pseudo_inode *act_path_inode);
 
+/**
+ * vypise obsah souboru
+ * @param file
+ * @param fptr
+ * @param sb
+ */
 void print_file_content(pseudo_inode *file, FILE *fptr, superblock *sb);
 
+/**
+ * vypise informace o souboru
+ * @param file
+ * @param file_parent
+ * @param fptr
+ * @param sb
+ */
 void print_file_info(pseudo_inode *file, pseudo_inode *file_parent, FILE *fptr, superblock *sb);
 
+/**
+ * nastavit directory_item
+ * @param fptr soubor
+ * @param sb superblock
+ * @param file_nodeid nodeid
+ * @param file_parent inode rodice souboru
+ * @param file_dir_item inode souboru
+ * @return success
+ */
 bool set_diritem_by_inode(FILE *fptr, superblock *sb, int file_nodeid, pseudo_inode *file_parent, directory_item *file_dir_item);
 
+/**
+ * nastavi inode podle jmena souboru
+ * @param fptr svazek
+ * @param sb superblock
+ * @param act_dir_inode aktualni cesta
+ * @param dir_inode_to_set cesta k nastaveni
+ * @param name jmeno soboru
+ * @return success
+ */
 bool set_inode_by_name(FILE *fptr,superblock *sb, pseudo_inode *act_dir_inode, pseudo_inode *dir_inode_to_set, char *name);
 
+/**
+ * vyexportuje soubor
+ * @param file
+ * @param target_name
+ * @param fptr
+ * @param sb
+ * @return
+ */
 bool export_file(pseudo_inode *file, char *target_name, FILE *fptr, superblock *sb);
 
+/**
+ * smaze soubor
+ * @param file
+ * @param file_parent
+ * @param fptr
+ * @param sb
+ * @return
+ */
 bool delete_file(pseudo_inode *file, pseudo_inode *file_parent, FILE *fptr, superblock *sb);
 
 #endif
