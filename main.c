@@ -166,18 +166,18 @@ int main(int argc, char **argv) {
             command_recognized = 1;
 
             sscanf(line, "%29s %59s", command, s1);
-            if(cd(name, &act_path_inode, &act_path, s1) == -1) {
+            if(cd(name, &act_path_inode, act_path, s1) == -1) {
                 continue;
             }
         }
 
         //ls
-        if (strcmp(command, "cd") == 0) {
-            char s1[60];    //pozadovana
+        if (strcmp(command, "ls") == 0) {
+            char s1[60];    //adresa slozky ktera se ma vypsat
             command_recognized = 1;
 
             sscanf(line, "%29s %59s", command, s1);
-            if(cd(name, &act_path_inode, &act_path, s1) == -1) {
+            if(ls(name, &act_path_inode, s1) == -1) {
                 continue;
             }
         }

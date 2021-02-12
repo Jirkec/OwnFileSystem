@@ -135,7 +135,7 @@ bool set_dir_by_name(FILE *fptr,superblock *sb, pseudo_inode *act_dir_inode, pse
     for (int i = 0; i < FILES_IN_FOLDER_COUNT; i++) {
         directory_item act_dir_content_file;
         fseek(fptr, sb->data_start_address                          //zacatek dat
-                    + (act_dir_inode->direct1 * sizeof(CLUSTER_SIZE) ) //zacatek dat slozky
+                    + (act_dir_inode->direct1 * CLUSTER_SIZE ) //zacatek dat slozky
                     + (i * sizeof(directory_item) ), SEEK_SET); //zacatek dat dir itemu
         fread(&act_dir_content_file, sizeof(directory_item), 1, fptr);
         if(strcmp(act_dir_content_file.item_name, name) == 0){
@@ -156,7 +156,7 @@ bool set_file_by_name(FILE *fptr,superblock *sb, pseudo_inode *act_dir_inode, ps
     for (int i = 0; i < FILES_IN_FOLDER_COUNT; i++) {
         directory_item act_dir_content_file;
         fseek(fptr, sb->data_start_address                          //zacatek dat
-                    + (act_dir_inode->direct1 * sizeof(CLUSTER_SIZE) ) //zacatek dat slozky
+                    + (act_dir_inode->direct1 * CLUSTER_SIZE ) //zacatek dat slozky
                     + (i * sizeof(directory_item) ), SEEK_SET); //zacatek dat dir itemu
         fread(&act_dir_content_file, sizeof(directory_item), 1, fptr);
         //printf("found dir_item-> nodeid:%d | name:%s\n",act_dir_content_file.inode, act_dir_content_file.item_name);
@@ -178,7 +178,7 @@ bool set_inode_by_name(FILE *fptr,superblock *sb, pseudo_inode *act_dir_inode, p
     for (int i = 0; i < FILES_IN_FOLDER_COUNT; i++) {
         directory_item act_dir_content_file;
         fseek(fptr, sb->data_start_address                          //zacatek dat
-                    + (act_dir_inode->direct1 * sizeof(CLUSTER_SIZE) ) //zacatek dat slozky
+                    + (act_dir_inode->direct1 * CLUSTER_SIZE ) //zacatek dat slozky
                     + (i * sizeof(directory_item) ), SEEK_SET); //zacatek dat dir itemu
         fread(&act_dir_content_file, sizeof(directory_item), 1, fptr);
         //printf("found dir_item-> nodeid:%d | name:%s\n",act_dir_content_file.inode, act_dir_content_file.item_name);
@@ -209,27 +209,28 @@ bool set_inode_by_path(pseudo_inode *act_dir_inode, char *path, superblock *sb, 
         act_dir_inode->file_size=CLUSTER_SIZE;
         act_dir_inode->direct1=0;
         result = true;
-    }
-
-    int num_of_dirs_in_path = get_num_of_char_in_string(path, '/');
-    if(num_of_dirs_in_path>0) {
-        for (int i = 0; i < num_of_dirs_in_path; i++) {
-            parse_first_dir_from_path(dirname(path), &path);
-            set_inode_by_path(act_dir_inode, path, sb, fptr, act_dir_inode);
-        }
-    }else{
-        if(strcmp(path, ".") == 0){     //aktualni adresar
-            *act_dir_inode = *act_path_inode;
-            result = true;
-        }else if(strcmp(path, "..") == 0){  //rodic
-            directory_item tmp;
-            fseek(fptr, sb->data_start_address                                  //zacatek dat
-                        + (act_path_inode->direct1 * CLUSTER_SIZE), SEEK_SET);  //zacatek dat slozky (nazacaku je dir item parent)
-            fread(&tmp, sizeof(directory_item), 1, fptr);
-            set_inode_by_nodeid(fptr, sb, tmp.inode, act_dir_inode);
-            result = true;
-        }else{  //slozka v act adresari
-            result = set_dir_by_name(fptr,sb, act_path_inode, act_dir_inode, path); //path = nazev hledane slozky
+    }else {
+        int num_of_dirs_in_path = get_num_of_char_in_string(path, '/');
+        if (num_of_dirs_in_path > 0) {
+            for (int i = 0; i < num_of_dirs_in_path; i++) {
+                parse_first_dir_from_path(dirname(path), &path);
+                set_inode_by_path(act_dir_inode, path, sb, fptr, act_dir_inode);
+            }
+        } else {
+            if (strcmp(path, ".") == 0) {     //aktualni adresar
+                *act_dir_inode = *act_path_inode;
+                result = true;
+            } else if (strcmp(path, "..") == 0) {  //rodic
+                directory_item tmp;
+                fseek(fptr, sb->data_start_address                                  //zacatek dat
+                            + (act_path_inode->direct1 * CLUSTER_SIZE),
+                      SEEK_SET);  //zacatek dat slozky (nazacaku je dir item parent)
+                fread(&tmp, sizeof(directory_item), 1, fptr);
+                set_inode_by_nodeid(fptr, sb, tmp.inode, act_dir_inode);
+                result = true;
+            } else {  //slozka v act adresari
+                result = set_dir_by_name(fptr, sb, act_path_inode, act_dir_inode, path); //path = nazev hledane slozky
+            }
         }
     }
 

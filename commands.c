@@ -52,7 +52,7 @@ int format(int disk_size, char *name){
     }
 
     // data slozky /, prvni je odkaz sam na sebe
-    directory_item di_root = {0, "/"};
+    directory_item di_root = {0, "."};
     fwrite(&di_root, sizeof(di_root), 1, fptr);
     for(int i = 0; i < FILES_IN_FOLDER_COUNT -1; i++) {
         directory_item empty = {ID_ITEM_FREE, "<=filename=>"};
@@ -114,9 +114,11 @@ int incp(char *name, pseudo_inode *act_path_inode, char *s1, char *s2, bool prin
     //overeni, ze lze pridat soubor do cilove slozky
     int act_dir_free_file_id = 0;
     int act_dir_free_file_nodeid;
-    fseek(fptr, sb.data_start_address + (act_dir_inode.direct1 * sizeof(CLUSTER_SIZE) ), SEEK_SET); //nastaveni fseek na data aktualni slozky
     for (int i = 0; i < FILES_IN_FOLDER_COUNT; i++) {
         directory_item act_dir_content_file;
+        fseek(fptr, sb.data_start_address
+                    + (act_dir_inode.direct1 * CLUSTER_SIZE)
+                    + (i * sizeof(directory_item) ), SEEK_SET); //nastaveni fseek na data aktualni slozky
         fread(&act_dir_content_file, sizeof(directory_item), 1, fptr);
         if(act_dir_content_file.inode == ID_ITEM_FREE){
             act_dir_free_file_nodeid = act_dir_content_file.inode;
@@ -504,14 +506,16 @@ int mkdir(char *name, pseudo_inode *act_path_inode, char *s1){
         fclose(fptr);
         return -1;
     }
-    //printf("nodeid:%d | isDirectory:%d\n",act_dir_inode.nodeid, act_dir_inode.isDirectory);
+    printf("nodeid:%d | isDirectory:%d | act_dir_inode.direct1:%d\n",act_dir_inode.nodeid, act_dir_inode.isDirectory, act_dir_inode.direct1);
 
     //overeni, ze lze pridat soubor do cilove slozky
     int act_dir_free_file_id = 0;
     int act_dir_free_file_nodeid;
-    fseek(fptr, sb.data_start_address + (act_dir_inode.direct1 * sizeof(CLUSTER_SIZE) ), SEEK_SET); //nastaveni fseek na data aktualni slozky
     for (int i = 0; i < FILES_IN_FOLDER_COUNT; i++) {
         directory_item act_dir_content_file;
+        fseek(fptr, sb.data_start_address
+                        + (act_dir_inode.direct1 * CLUSTER_SIZE)
+                        + (i * sizeof(directory_item) ), SEEK_SET); //nastaveni fseek na data aktualni slozky
         fread(&act_dir_content_file, sizeof(directory_item), 1, fptr);
         if(act_dir_content_file.inode == ID_ITEM_FREE){
             act_dir_free_file_nodeid = act_dir_content_file.inode;
@@ -687,4 +691,58 @@ int cd(char *name, pseudo_inode *act_path_inode, char *act_path, char *s1){
 
     *act_path_inode = new_path_inode;
     fclose(fptr);
+}
+
+int ls(char *name, pseudo_inode *act_path_inode, char *s1){
+    char file_name[12];
+    char *path;
+
+    //parsovani nazvu souboru - cesty
+    char *path_parse_tmp1 = strdup(s1);
+    char *path_parse_tmp2 = strdup(s1);
+    path = dirname(path_parse_tmp1);
+    char * tmp_file_name = basename(path_parse_tmp2);
+    if(strlen(tmp_file_name)>12){
+        printf("File name is too long. Maximum is 12, %d given.\n",strlen(tmp_file_name));
+        return -1;
+    }
+    strcpy(file_name, tmp_file_name);
+    //printf("path: |%s| filename:|%s|\n", path, file_name);
+
+
+    FILE *fptr = fopen(name, "rb+");
+    if (fptr == NULL) {
+        printf("%s |%s|\n", strerror(errno), name);
+        return -1;
+    }
+    superblock sb = {};
+    fread(&sb, sizeof(sb), 1, fptr);
+
+    //nastaveni cesty
+    pseudo_inode act_dir_inode;
+    if(!set_inode_by_path(&act_dir_inode, path, &sb, fptr, act_path_inode)) {
+        printf("Path to parent dir does not exist.\n");
+        fclose(fptr);
+        return -1;
+    }
+    //printf("DIR: nodeid:%d | file_size:%d\n", act_dir_inode.nodeid, act_dir_inode.file_size);
+
+    int file_count = 0;
+    for(int i = 1; i < FILES_IN_FOLDER_COUNT-1; i++){
+        directory_item tmp;
+        fseek(fptr, sb.data_start_address + (act_dir_inode.direct1 * CLUSTER_SIZE) + (i * sizeof(directory_item) ), SEEK_SET);
+        fread(&tmp, sizeof(directory_item), 1, fptr);
+        //printf("name:%s | node_id:%d \n", tmp.item_name, tmp.inode);
+        if(tmp.inode != ID_ITEM_FREE && tmp.inode != act_dir_inode.nodeid) {
+            pseudo_inode tmp_inode;
+            set_inode_by_nodeid(fptr, &sb, tmp.inode, &tmp_inode);
+            printf("name:%s | node_id:%d | isDirectory:%d | file size:%d\n", tmp.item_name, tmp.inode,tmp_inode.isDirectory, tmp_inode.file_size);
+            file_count++;
+        }
+    }
+
+    if(file_count == 0){
+        printf("Directory is empty.\n");
+    }
+    return 1;
 }

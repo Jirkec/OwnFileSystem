@@ -25,4 +25,6 @@ int rmdir(char *name, pseudo_inode *act_path_inode, char *s1);
 
 int cd(char *name, pseudo_inode *act_path_inode, char *act_path, char *s1);
 
+int ls(char *name, pseudo_inode *act_path_inode, char *s1);
+
 #endif //MAIN_C_COMMANDS_H
