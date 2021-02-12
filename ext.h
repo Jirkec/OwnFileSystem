@@ -17,11 +17,11 @@
 #include <math.h>
 #include <libgen.h>
 
-#define CLUSTER_SIZE 32             //bylo by dobre, aby byl dělitelný 16 - tj. sizeof(struct directory_item)
-#define FILES_IN_FOLDER_COUNT 2     //CLUSTER_SIZE / sizeof(struct directory_item)
+#define CLUSTER_SIZE 64             //bylo by dobre, aby byl dělitelný 16 - tj. sizeof(struct directory_item)
+#define FILES_IN_FOLDER_COUNT 4     //CLUSTER_SIZE / sizeof(struct directory_item)
 #define INODES_COUNT 10
-#define BITMAPI_SIZE 10
-#define BITMAP_SIZE 10
+#define BITMAPI_SIZE 10             // schopno zpravocat 80 souborů celkem
+#define BITMAP_SIZE 10              // schopno zpravocat 80 clusterů celkem
 #define DIRECT_LINK_COUNT 5
 #define ID_ITEM_FREE -1
 #define ID_CLUESTER_FREE -1
@@ -125,5 +125,7 @@ bool set_diritem_by_inode(FILE *fptr, superblock *sb, int file_nodeid, pseudo_in
 bool set_inode_by_name(FILE *fptr,superblock *sb, pseudo_inode *act_dir_inode, pseudo_inode *dir_inode_to_set, char *name);
 
 bool export_file(pseudo_inode *file, char *target_name, FILE *fptr, superblock *sb);
+
+bool delete_file(pseudo_inode *file, pseudo_inode *file_parent, FILE *fptr, superblock *sb);
 
 #endif

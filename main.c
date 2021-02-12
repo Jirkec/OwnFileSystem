@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
         //printf("command: |%s|\n", command);
 
         //format
-        if (strstr(command, "format") != NULL) {
+        if (strcmp(command, "format") == 0) {
             int size_number = 0;
             char size_char = 0;
             int size_multiplic;
@@ -59,18 +59,18 @@ int main(int argc, char **argv) {
 
 
         //incp
-        if (strstr(command, "incp") != NULL) {
+        if (strcmp(command, "incp") == 0) {
             char s1[60];    //source na disku
             char s2[60];    //dest v fs.ext
             command_recognized = 1;
 
             sscanf(line, "%29s %59s %59s", command, s1, s2);
-            if(incp(name, &act_path_inode, s1, s2) == -1)
+            if(incp(name, &act_path_inode, s1, s2, true) == -1)
                 continue;
         }
 
         //cat
-        if (strstr(command, "cat") != NULL) {
+        if (strcmp(command, "cat") == 0) {
             char s1[60];    //source v fs.ext
             command_recognized = 1;
 
@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
         }
 
         //info
-        if (strstr(command, "info") != NULL) {
+        if (strcmp(command, "info") == 0) {
             char s1[60];    //source v fs.ext
             command_recognized = 1;
 
@@ -89,31 +89,66 @@ int main(int argc, char **argv) {
                 continue;
         }
 
+        //rm
+        if (strcmp(command, "rm") == 0) {
+            char s1[60];    //source v fs.ext
+            command_recognized = 1;
+
+            sscanf(line, "%29s %59s", command, s1);
+            if(rm(name, &act_path_inode, s1, true) == -1)
+                continue;
+        }
+
         //outcp
-        if (strstr(command, "outcp") != NULL) {
+        if (strcmp(command, "outcp") == 0) {
             char s1[60];    //source v fs.ext
             char s2[60];    //dest na disku
             command_recognized = 1;
 
             sscanf(line, "%29s %59s %59s", command, s1, s2);
-            if(outcp(name, &act_path_inode, s1, s2) == -1)
+            if(outcp(name, &act_path_inode, s1, s2, true) == -1)
                 continue;
         }
 
+        //cp
+        if (strcmp(command, "cp") == 0) {
+            char s1[60];    //source v fs.ext
+            char s2[60];    //dest v fs.ext
+            command_recognized = 1;
+
+            sscanf(line, "%29s %59s %59s", command, s1, s2);
+            if(cp(name, &act_path_inode, s1, s2, true) == -1) {
+                printf("Coping failed.\n");
+                continue;
+            }
+        }
+
+        //mv
+        if (strcmp(command, "mv") == 0) {
+            char s1[60];    //source v fs.ext
+            char s2[60];    //dest v fs.ext
+            command_recognized = 1;
+
+            sscanf(line, "%29s %59s %59s", command, s1, s2);
+            if(mv(name, &act_path_inode, s1, s2) == -1) {
+                printf("Move failed.\n");
+                continue;
+            }
+        }
+
         //exit
-        if (strstr(command, "exit") != NULL) {
+        if (strcmp(command, "exit") == 0) {
             command_recognized = 1;
             running = false;
         }
 
         //help
-        if (strstr(command, "help") != NULL) {
+        if (strcmp(command, "help") == 0) {
             command_recognized = 1;
             printf("Commands are:\n");
             printf(" 1  format <size>\n");
             printf(" 2  exit\n");
             printf(" 3  incp <source on disk> <dest in FS>\n");
-
         }
 
         if(!command_recognized){

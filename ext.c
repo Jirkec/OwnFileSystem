@@ -27,7 +27,7 @@ int fill_sb(superblock *sb, int disk_size) {
 
     sb->disk_size = sb->data_start_address + (sb->cluster_count * sb->cluster_size);   //zadana velikost nemusi byt realna velikost,
     // protoze (disk_size - data_start_address) nemusi byt delitelna velikosti clusteru
-    printf("Actual size of disk:%dB (%d clusters [%dB])\n",sb->disk_size, sb->cluster_count, sb->cluster_size);
+    printf("Actual size of disk:%dB (%d clusters [%dB] + %d)\n",sb->disk_size, sb->cluster_count, sb->cluster_size, sb->data_start_address);
     return 0;
 }
 
@@ -346,5 +346,103 @@ bool export_file(pseudo_inode *file, char *target_name, FILE *fptr, superblock *
         fwrite(&buffer, strlen(buffer), 1, target);
     }
     fclose(target);
+    return true;
+}
+
+bool delete_file(pseudo_inode *file, pseudo_inode *file_parent, FILE *fptr, superblock *sb) {
+        //printf("size:%d[B] - i-node:%d", file->file_size, file->nodeid);
+
+        //mazání dat + uprava datove bitmapy
+        char data_placeholder[sb->cluster_size];  //32 = sizeof cluster
+        strcpy(data_placeholder, "<============volna_data======================volna_data========>");
+
+        u_char data_bitmap [sb->bitmap_size];
+        fseek(fptr, sb->bitmap_start_address, SEEK_SET);
+        fread(&data_bitmap, sizeof(data_bitmap), 1, fptr);
+        int data_bitmap_id;
+
+        if (file->direct1 != ID_CLUESTER_FREE) {
+            fseek(fptr, sb->data_start_address + (file->direct1 * CLUSTER_SIZE), SEEK_SET);
+            fwrite(&data_placeholder, sizeof(data_placeholder), 1, fptr);
+
+            data_bitmap_id = (int) floor((double) file->nodeid / 8.0);
+            data_bitmap[data_bitmap_id] = set_bit_on_position_in_bitmap(data_bitmap[data_bitmap_id], file->direct1, 0);
+            sb->cluster_free_count++;
+        }
+        if (file->direct2 != ID_CLUESTER_FREE) {
+            fseek(fptr, sb->data_start_address + (file->direct2 * CLUSTER_SIZE), SEEK_SET);
+            fwrite(&data_placeholder, sizeof(data_placeholder), 1, fptr);
+
+            data_bitmap_id = (int) floor((double) file->nodeid / 8.0);
+            data_bitmap[data_bitmap_id] = set_bit_on_position_in_bitmap(data_bitmap[data_bitmap_id], file->direct2, 0);
+            sb->cluster_free_count++;
+        }
+        if (file->direct3 != ID_CLUESTER_FREE) {
+            fseek(fptr, sb->data_start_address + (file->direct3 * CLUSTER_SIZE), SEEK_SET);
+            fwrite(&data_placeholder, sizeof(data_placeholder), 1, fptr);
+
+            data_bitmap_id = (int) floor((double) file->nodeid / 8.0);
+            data_bitmap[data_bitmap_id] = set_bit_on_position_in_bitmap(data_bitmap[data_bitmap_id], file->direct3, 0);
+            sb->cluster_free_count++;
+        }
+        if (file->direct4 != ID_CLUESTER_FREE) {
+            fseek(fptr, sb->data_start_address + (file->direct4 * CLUSTER_SIZE), SEEK_SET);
+            fwrite(&data_placeholder, sizeof(data_placeholder), 1, fptr);
+
+            data_bitmap_id = (int) floor((double) file->nodeid / 8.0);
+            data_bitmap[data_bitmap_id] = set_bit_on_position_in_bitmap(data_bitmap[data_bitmap_id], file->direct4, 0);
+            sb->cluster_free_count++;
+        }
+        if (file->direct5 != ID_CLUESTER_FREE) {
+            fseek(fptr, sb->data_start_address + (file->direct5 * CLUSTER_SIZE), SEEK_SET);
+            fwrite(&data_placeholder, sizeof(data_placeholder), 1, fptr);
+
+            data_bitmap_id = (int) floor((double) file->nodeid / 8.0);
+            data_bitmap[data_bitmap_id] = set_bit_on_position_in_bitmap(data_bitmap[data_bitmap_id], file->direct5, 0);
+            sb->cluster_free_count++;
+        }
+        fseek(fptr, sb->bitmap_start_address, SEEK_SET);
+        fwrite(&data_bitmap, sizeof(u_char), sb->bitmapi_size, fptr);
+
+
+        //mazání inode
+        char inode_placeholder[sizeof( pseudo_inode)]; //40 = sizeof( pseudo_inode))
+        strcpy(inode_placeholder, "<===========prazdny_inode==============>");
+        fseek(fptr, sb->inode_start_address + (file->nodeid * sizeof(pseudo_inode)), SEEK_SET);
+        fwrite(&inode_placeholder, sizeof(inode_placeholder), 1, fptr);
+        sb->inodes_free_count++;
+
+        //uprava bitmapy inodes
+        int inode_bitmap_id = (int) floor((double) file->nodeid / 8.0);
+        u_char inode_bitmap [sb->bitmapi_size];
+        fseek(fptr, sb->bitmapi_start_address, SEEK_SET);
+        fread(&inode_bitmap, sizeof(inode_bitmap), 1, fptr);
+        inode_bitmap[inode_bitmap_id] = set_bit_on_position_in_bitmap(inode_bitmap[inode_bitmap_id], file->nodeid, 0);
+        fseek(fptr, sb->bitmapi_start_address, SEEK_SET);
+        fwrite(&inode_bitmap, sizeof(u_char), sb->bitmapi_size, fptr);
+
+
+        //mazani dir item
+        for(int i = 0; i < FILES_IN_FOLDER_COUNT; i++) {
+            directory_item tmp;
+            fseek(fptr, sb->data_start_address                  //data
+                        + (file_parent->direct1 * CLUSTER_SIZE)        //data slozky rodice souboru
+                        + (i * sizeof(directory_item) ), SEEK_SET);    //konkretni dir item ve slozce
+            fread(&tmp, sizeof(directory_item), 1, fptr);
+            //printf("tmp.inode:%d == file->nodeid:%d\n",tmp.inode, file->nodeid);
+            if(tmp.inode == file->nodeid){
+                tmp.inode = ID_ITEM_FREE;
+                strcpy(tmp.item_name, "<=filename=>");
+                fseek(fptr, sb->data_start_address                  //data
+                            + (file_parent->direct1 * CLUSTER_SIZE)        //data slozky rodice souboru
+                            + (i * sizeof(directory_item) ), SEEK_SET);    //konkretni dir item ve slozce
+                fwrite(&tmp, sizeof(directory_item), 1, fptr);
+                break;
+            }
+        }
+
+        fseek(fptr, 0, SEEK_SET);
+        fwrite(sb, sizeof(*sb), 1, fptr);
+
     return true;
 }
