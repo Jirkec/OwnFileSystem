@@ -14,10 +14,6 @@ C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/commands
 ext.h
 C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/ext.h
 
-C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/ext.c
-ext.h
-C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/ext.h
-
 C:/Users/uzivatel/Documents/skola/3rocnik/ZOS/semestralZOS/ZOSsemestral/ext.h
 stdbool.h
 -
@@ -32,5 +28,7 @@ stdio.h
 math.h
 -
 libgen.h
+-
+ctype.h
 -
 

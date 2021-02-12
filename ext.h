@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <libgen.h>
+#include <ctype.h>
 
 #define CLUSTER_SIZE 64             //bylo by dobre, aby byl dělitelný 16 - tj. sizeof(struct directory_item)
 #define FILES_IN_FOLDER_COUNT 4     //CLUSTER_SIZE / sizeof(struct directory_item)
@@ -24,6 +25,9 @@
 #define DIRECT_LINK_COUNT 5
 #define ID_ITEM_FREE -1
 #define ID_CLUESTER_FREE -1
+#define TYPE_DIRECTORY 1
+#define TYPE_FILE 0
+#define TYPE_SLINK 2
 
 typedef unsigned char u_char;
 
@@ -46,8 +50,8 @@ typedef struct thesuperblock {
 
 typedef struct thepseudo_inode {
     int32_t nodeid;                 //ID i-uzlu, pokud ID = ID_ITEM_FREE, je polozka volna
-    bool isDirectory;               //soubor, nebo adresar
-    int8_t references;              //počet odkazů na i-uzel, používá se pro hardlinky
+    int8_t isDirectory;               //soubor, nebo adresar, nebo slink
+    int8_t references;              //počet odkazů na i-uzel
     int32_t file_size;              //velikost souboru v bytech
     int32_t direct1;                // 1. přímý odkaz na datové bloky
     int32_t direct2;                // 2. přímý odkaz na datové bloky

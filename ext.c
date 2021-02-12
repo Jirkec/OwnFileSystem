@@ -163,7 +163,7 @@ bool set_file_by_name(FILE *fptr,superblock *sb, pseudo_inode *act_dir_inode, ps
         if(strcmp(act_dir_content_file.item_name, name) == 0){
             pseudo_inode tmp;
             set_inode_by_nodeid(fptr, sb, act_dir_content_file.inode, &tmp);
-            if(!tmp.isDirectory) {
+            if(tmp.isDirectory == TYPE_SLINK || tmp.isDirectory == TYPE_FILE) {
                 *dir_inode_to_set = tmp;
                 return true;
             }

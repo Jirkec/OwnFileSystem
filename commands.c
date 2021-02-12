@@ -72,7 +72,7 @@ int format(int disk_size, char *name){
     return 1;
 }
 
-int incp(char *name, pseudo_inode *act_path_inode, char *s1, char *s2, bool printMsg){
+int incp(char *name, pseudo_inode *act_path_inode, char *s1, char *s2, bool printMsg, bool slink){
     char file_name[12];
     char *path;
 
@@ -91,7 +91,7 @@ int incp(char *name, pseudo_inode *act_path_inode, char *s1, char *s2, bool prin
 
     FILE *fptr = fopen(name, "rb+");
     if (fptr == NULL) {
-        printf("%s |%s|\n", strerror(errno), name);
+        printf("%s zde|%s|\n", strerror(errno), name);
         return -1;
     }
     superblock sb = {};
@@ -176,7 +176,8 @@ int incp(char *name, pseudo_inode *act_path_inode, char *s1, char *s2, bool prin
                             }
                         }
                     }
-                    pseudo_inode new_file_inode = {new_nodeid, false, 1, file_size, new_file_clusters[0],
+                    int8_t file_type = slink ? TYPE_SLINK : TYPE_FILE;
+                    pseudo_inode new_file_inode = {new_nodeid, file_type, 1, file_size, new_file_clusters[0],
                                                    new_file_clusters[1], new_file_clusters[2],
                                                    new_file_clusters[3], new_file_clusters[4]};
 
@@ -278,6 +279,7 @@ int cat(char *name, pseudo_inode *act_path_inode, char *s1){
     }
     //printf("DIR: nodeid:%d | file_size:%d\n", act_dir_inode.nodeid, act_dir_inode.file_size);
 
+    //printf("act_dir_inode.inodeid:%d | file_name:%s\n", act_dir_inode.nodeid, file_name);
     pseudo_inode file;
     if(!set_file_by_name(fptr,&sb, &act_dir_inode, &file, file_name)) {
         printf("Path to file does not exist.\n");
@@ -285,7 +287,18 @@ int cat(char *name, pseudo_inode *act_path_inode, char *s1){
         return -1;
     }
     //printf("nodeid:%d | file_size:%d\n", file.nodeid, file.file_size);
-    print_file_content(&file, fptr, &sb);
+    if(file.isDirectory != TYPE_SLINK)
+        print_file_content(&file, fptr, &sb);
+    else{
+        int32_t real_inode_id;
+        fseek(fptr, sb.data_start_address + (file.direct1 * CLUSTER_SIZE), SEEK_SET);
+        fread(&real_inode_id, sizeof(real_inode_id),1, fptr);
+        if(real_inode_id > ID_ITEM_FREE){
+            pseudo_inode real_inode;
+            set_inode_by_nodeid(fptr, &sb, real_inode_id, &real_inode);
+            print_file_content(&real_inode, fptr, &sb);
+        }
+    }
 
     fclose(fptr);
 }
@@ -376,6 +389,12 @@ int outcp(char *name, pseudo_inode *act_path_inode, char *s1, char *s2, bool pri
         fclose(fptr);
         return -1;
     }
+    if(file.isDirectory == TYPE_SLINK){
+        printf("Opration failed. Selected file is slink.\n");
+        fclose(fptr);
+        return -1;
+    }
+
     //printf("nodeid:%d | file_size:%d\n", file.nodeid, file.file_size);
     if(export_file(&file, s2, fptr, &sb)){
         if(printMsg)
@@ -445,7 +464,7 @@ int cp(char *name, pseudo_inode *act_path_inode, char *s1, char *s2, bool printM
 
     if(outcp(name, act_path_inode, s1, export_path, false) == -1)
         return -1;
-    if(incp(name, act_path_inode, export_path, s2, false) == -1)
+    if(incp(name, act_path_inode, export_path, s2, false, false) == -1)
         return -1;
 
     remove(export_path);
@@ -743,6 +762,303 @@ int ls(char *name, pseudo_inode *act_path_inode, char *s1){
 
     if(file_count == 0){
         printf("Directory is empty.\n");
+    }
+    return 1;
+}
+
+int slink(char *name, pseudo_inode *act_path_inode, char *s1, char *s2){
+    char file_name_1[12];
+    char *path_1;
+
+    //parsovani nazvu souboru - cesty
+    char *path_parse_tmp11 = strdup(s2);
+    char *path_parse_tmp12 = strdup(s2);
+    path_1 = dirname(path_parse_tmp11);
+    char * tmp_file_name1 = basename(path_parse_tmp12);
+    if(strlen(tmp_file_name1)>12){
+        printf("File name is too long. Maximum is 12, %d given.\n",strlen(tmp_file_name1));
+        return -1;
+    }
+    strcpy(file_name_1, tmp_file_name1);
+    //printf("path: |%s| filename:|%s|\n", path, file_name);
+
+
+    FILE *fptr = fopen(name, "rb+");
+    if (fptr == NULL) {
+        printf("%s :) |%s|\n", strerror(errno), name);
+        return -1;
+    }
+    superblock sb = {};
+    fread(&sb, sizeof(sb), 1, fptr);
+
+    //nastaveni cesty
+    pseudo_inode act_dir_inode_1;   //dir inodu na ktery bude ukazovano
+    if(!set_inode_by_path(&act_dir_inode_1, path_1, &sb, fptr, act_path_inode)) {
+        printf("Path dir to linked file does not exist.\n");
+        fclose(fptr);
+        return -1;
+    }
+    pseudo_inode file;  //inode na ktery bude ukazovano
+    if(!set_file_by_name(fptr,&sb, &act_dir_inode_1, &file, file_name_1)) {
+        printf("Path to file does not exist.\n");
+        fclose(fptr);
+        return -1;
+    }
+    //printf("nodeid:%d | isDirectory:%d\n",act_dir_inode.nodeid, act_dir_inode.isDirectory);
+
+    char *tmp_file_slink_data = "tmp/temp_slink_file.tmp";
+    remove(tmp_file_slink_data);
+    FILE *fptr_tmp = fopen(tmp_file_slink_data, "wb");
+    if (fptr_tmp == NULL) {
+        printf("%s |%s|\n", strerror(errno), tmp_file_slink_data);
+        return -1;
+    }
+    fwrite(&file.nodeid, sizeof(file.nodeid), 1, fptr_tmp);
+    fclose(fptr_tmp);
+    fclose(fptr);
+
+    if(incp(name, act_path_inode, tmp_file_slink_data, s1, false, true) == -1){
+        printf("slink couldnt be created.\n");
+        remove(tmp_file_slink_data);
+        return -1;
+    }
+
+    remove(tmp_file_slink_data);
+    printf("slink created.\n");
+    return 1;
+}
+
+int load(char *name, char *s1, pseudo_inode *act_path_inode, char *act_path){
+    char line[256];
+
+    FILE *fptr = fopen(s1, "rb+");
+    if (fptr == NULL) {
+        printf("%s :) |%s|\n", strerror(errno), name);
+        return -1;
+    }
+    while( fgets (line, 256, fptr)!=NULL ) {
+        line[strcspn(line, "\n")] = '\0';
+        printf("%s\n",line);
+        resolve_command(line, name, act_path_inode, act_path);
+    }
+    fclose(fptr);
+}
+
+int resolve_command(char *line, char *name, pseudo_inode *act_path_inode, char *act_path){
+    bool command_recognized = 0;
+    char command[30];
+    sscanf(line, "%s", command);
+    //format
+    if (strcmp(command, "format") == 0) {
+        int size_number = 0;
+        char size_char = 0;
+        int size_multiplic;
+        int disk_size;
+        command_recognized = 1;
+
+        sscanf(line, "%s %d %c", command, &size_number, &size_char);
+        //printf("print input parsed: %s %d %c\n", command, size_number, size_char);
+
+        size_char = (char) toupper((int)size_char);
+        switch (size_char) {
+            case 'K':
+                size_multiplic = 10;
+                break;
+            case 'M':
+                size_multiplic = 20;
+                break;
+            case 'G':
+                size_multiplic = 30;
+                break;
+            default:
+                size_multiplic = 0;
+        }
+
+        disk_size = size_number * ((int)pow(2, size_multiplic));
+        if(format(disk_size, name) == -1)
+            return -1;
+    }
+
+
+    //incp
+    if (strcmp(command, "incp") == 0) {
+        char s1[60];    //source na disku
+        char s2[60];    //dest v fs.ext
+        command_recognized = 1;
+        sscanf(line, "%29s %59s %59s", command, s1, s2);
+
+        pseudo_inode tmp_path_inode = *act_path_inode;
+        if(incp(name, &tmp_path_inode, s1, s2, true, false) == -1)
+            return -1;
+    }
+
+    //cat
+    if (strcmp(command, "cat") == 0) {
+        char s1[60];    //source v fs.ext
+        command_recognized = 1;
+
+        sscanf(line, "%29s %59s", command, s1);
+        pseudo_inode tmp_path_inode = *act_path_inode;
+        if(cat(name, &tmp_path_inode, s1) == -1)
+            return -1;
+    }
+
+    //info
+    if (strcmp(command, "info") == 0) {
+        char s1[60];    //source v fs.ext
+        command_recognized = 1;
+
+        sscanf(line, "%29s %59s", command, s1);
+        pseudo_inode tmp_path_inode = *act_path_inode;
+        if(info(name, &tmp_path_inode, s1) == -1)
+            return -1;
+    }
+
+    //rm
+    if (strcmp(command, "rm") == 0) {
+        char s1[60];    //source v fs.ext
+        command_recognized = 1;
+
+        sscanf(line, "%29s %59s", command, s1);
+        pseudo_inode tmp_path_inode = *act_path_inode;
+        if(rm(name, &tmp_path_inode, s1, true) == -1)
+            return -1;
+    }
+
+    //outcp
+    if (strcmp(command, "outcp") == 0) {
+        char s1[60];    //source v fs.ext
+        char s2[60];    //dest na disku
+        command_recognized = 1;
+
+        sscanf(line, "%29s %59s %59s", command, s1, s2);
+        pseudo_inode tmp_path_inode = *act_path_inode;
+        if(outcp(name, &tmp_path_inode, s1, s2, true) == -1)
+            return -1;
+    }
+
+    //cp
+    if (strcmp(command, "cp") == 0) {
+        char s1[60];    //source v fs.ext
+        char s2[60];    //dest v fs.ext
+        command_recognized = 1;
+
+        sscanf(line, "%29s %59s %59s", command, s1, s2);
+        pseudo_inode tmp_path_inode = *act_path_inode;
+        if(cp(name, &tmp_path_inode, s1, s2, true) == -1) {
+            printf("Coping failed.\n");
+            return -1;
+        }
+    }
+
+    //mv
+    if (strcmp(command, "mv") == 0) {
+        char s1[60];    //source v fs.ext
+        char s2[60];    //dest v fs.ext
+        command_recognized = 1;
+
+        sscanf(line, "%29s %59s %59s", command, s1, s2);
+        pseudo_inode tmp_path_inode = *act_path_inode;
+        if(mv(name, &tmp_path_inode, s1, s2) == -1) {
+            printf("Move failed.\n");
+            return -1;
+        }
+    }
+
+    //mkdir
+    if (strcmp(command, "mkdir") == 0) {
+        char s1[60];    //source v fs.ext
+        command_recognized = 1;
+
+        sscanf(line, "%29s %59s", command, s1);
+        pseudo_inode tmp_path_inode = *act_path_inode;
+        if(mkdir(name, &tmp_path_inode, s1) == -1) {
+            return -1;
+        }
+    }
+
+    //rmdir
+    if (strcmp(command, "rmdir") == 0) {
+        char s1[60];    //source v fs.ext
+        command_recognized = 1;
+
+        sscanf(line, "%29s %59s", command, s1);
+        pseudo_inode tmp_path_inode = *act_path_inode;
+        if(rmdir(name, &tmp_path_inode, s1) == -1) {
+            printf("Directory delete failed.\n");
+            return -1;
+        }
+    }
+
+    //cd
+    if (strcmp(command, "cd") == 0) {
+        char s1[60];    //pozadovana
+        command_recognized = 1;
+
+        sscanf(line, "%29s %59s", command, s1);
+        if(cd(name, act_path_inode, act_path, s1) == -1) {
+            return -1;
+        }
+    }
+
+    //ls
+    if (strcmp(command, "ls") == 0) {
+        char s1[60];    //adresa slozky ktera se ma vypsat
+        command_recognized = 1;
+
+        sscanf(line, "%29s %59s", command, s1);
+        if(ls(name, act_path_inode, s1) == -1) {
+            return -1;
+        }
+    }
+
+    //load
+    if (strcmp(command, "load") == 0) {
+        char s1[60];    //adresa slozky ktera se ma vypsat
+        command_recognized = 1;
+
+        sscanf(line, "%29s %59s", command, s1);
+        if(load(name, s1, act_path_inode, act_path) == -1) {
+            return -1;
+        }
+    }
+
+    //slink
+    if (strcmp(command, "slink") == 0) {
+        char s1[60];    //source v fs.ext
+        char s2[60];    //dest v fs.ext
+        command_recognized = 1;
+
+        sscanf(line, "%29s %59s %59s", command, s1, s2);
+        pseudo_inode tmp_path_inode = *act_path_inode;
+        if(slink(name, &tmp_path_inode, s1, s2) == -1) {
+            return -1;
+        }
+    }
+
+    //pwd
+    if (strcmp(command, "pwd") == 0) {
+        command_recognized = 1;
+        printf("%s\n",act_path);
+    }
+
+    //exit
+    if (strcmp(command, "exit") == 0) {
+        command_recognized = 1;
+        return 2;
+    }
+
+    //help
+    if (strcmp(command, "help") == 0) {
+        command_recognized = 1;
+        printf("Commands are:\n");
+        printf(" 1  format <size>\n");
+        printf(" 2  exit\n");
+        printf(" 3  incp <source on disk> <dest in FS>\n");
+    }
+
+    if(!command_recognized){
+        printf("Command not recognized. Use 'help' command.\n");
     }
     return 1;
 }

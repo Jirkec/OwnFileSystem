@@ -1,0 +1,24 @@
+format 8KB     
+incp soubor.txt soubor.txt      
+cat soubor.txt       
+info soubor.txt   
+outcp soubor.txt soubor2.txt   
+cp soubor.txt test.txt   
+cat test.txt       
+rm soubor.txt 
+mv test.txt soubor2.txt   
+cat soubor2.txt        
+mv soubor2.txt test.txt   
+cat test.txt        
+mkdir slozka
+rmdir slozka
+pwd
+ls
+cd /        
+mkdir slozka
+slink slozka/slink test.txt
+cd slozka
+ls
+cat slink
+cd /
+cat slozka/slink
