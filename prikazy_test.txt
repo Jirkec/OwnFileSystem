@@ -1,24 +1,13 @@
-format 8KB     
-incp soubor.txt soubor.txt      
-cat soubor.txt       
-info soubor.txt   
-outcp soubor.txt soubor2.txt   
-cp soubor.txt test.txt   
-cat test.txt       
-rm soubor.txt 
-mv test.txt soubor2.txt   
-cat soubor2.txt        
-mv soubor2.txt test.txt   
-cat test.txt        
-mkdir slozka
-rmdir slozka
-pwd
+format 8MB
 ls
-cd /        
-mkdir slozka
-slink slozka/slink test.txt
-cd slozka
+mkdir a1
+mkdir a2
+mkdir a3
+mkdir a4
+mkdir a5
+mkdir a6
 ls
-cat slink
+incp soubor.txt a1/soubor.txt
+cd a1
+ls
 cd /
-cat slozka/slink

@@ -17,11 +17,11 @@
 #include <libgen.h>
 #include <ctype.h>
 
-#define CLUSTER_SIZE 64             //bylo by dobre, aby byl dělitelný 16 - tj. sizeof(struct directory_item)
-#define FILES_IN_FOLDER_COUNT 4     //CLUSTER_SIZE / sizeof(struct directory_item)
-#define INODES_COUNT 10
-#define BITMAPI_SIZE 10             // schopno zpravocat 80 souborů celkem
-#define BITMAP_SIZE 10              // schopno zpravocat 80 clusterů celkem
+#define CLUSTER_SIZE 4096             //bylo by dobre, aby byl dělitelný 16 - tj. sizeof(struct directory_item)
+#define FILES_IN_FOLDER_COUNT 256     //CLUSTER_SIZE / sizeof(struct directory_item)
+#define INODES_COUNT 200
+#define BITMAPI_SIZE 30             // schopno zpravocat 30*8 souborů celkem
+#define BITMAP_SIZE 30              // schopno zpravocat 30*8 clusterů celkem
 #define DIRECT_LINK_COUNT 5
 #define ID_ITEM_FREE -1
 #define ID_CLUESTER_FREE -1

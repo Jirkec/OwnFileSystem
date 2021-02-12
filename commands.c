@@ -751,7 +751,7 @@ int ls(char *name, pseudo_inode *act_path_inode, char *s1){
     //printf("DIR: nodeid:%d | file_size:%d\n", act_dir_inode.nodeid, act_dir_inode.file_size);
 
     int file_count = 0;
-    for(int i = 1; i < FILES_IN_FOLDER_COUNT-1; i++){
+    for(int i = 0; i < FILES_IN_FOLDER_COUNT; i++){
         directory_item tmp;
         fseek(fptr, sb.data_start_address + (act_dir_inode.direct1 * CLUSTER_SIZE) + (i * sizeof(directory_item) ), SEEK_SET);
         fread(&tmp, sizeof(directory_item), 1, fptr);
@@ -834,7 +834,7 @@ int slink(char *name, pseudo_inode *act_path_inode, char *s1, char *s2){
 
 int load(char *name, char *s1, pseudo_inode *act_path_inode, char *act_path){
     char line[256];
-
+printf("s1:%s\n",s1);
     FILE *fptr = fopen(s1, "rb+");
     if (fptr == NULL) {
         printf("%s :) |%s|\n", strerror(errno), name);
