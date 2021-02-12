@@ -1,4 +1,3 @@
-
 #ifndef SEMESTRALKA_EXT_H
 #define SEMESTRALKA_EXT_H
 

@@ -12,6 +12,7 @@ int main(int argc, char **argv) {
     char *name = argv[1];
     bool running = true;
     pseudo_inode act_path_inode = {0, true, 1, CLUSTER_SIZE,0};  //nastaveno na root
+    char act_path[60] = "/";
 
     printf("Program started. Enter commands.\n");
     while (running){
@@ -134,6 +135,57 @@ int main(int argc, char **argv) {
                 printf("Move failed.\n");
                 continue;
             }
+        }
+
+        //mkdir
+        if (strcmp(command, "mkdir") == 0) {
+            char s1[60];    //source v fs.ext
+            command_recognized = 1;
+
+            sscanf(line, "%29s %59s", command, s1);
+            if(mkdir(name, &act_path_inode, s1) == -1) {
+                continue;
+            }
+        }
+
+        //rmdir
+        if (strcmp(command, "rmdir") == 0) {
+            char s1[60];    //source v fs.ext
+            command_recognized = 1;
+
+            sscanf(line, "%29s %59s", command, s1);
+            if(rmdir(name, &act_path_inode, s1) == -1) {
+                printf("Directory delete failed.\n");
+                continue;
+            }
+        }
+
+        //cd
+        if (strcmp(command, "cd") == 0) {
+            char s1[60];    //pozadovana
+            command_recognized = 1;
+
+            sscanf(line, "%29s %59s", command, s1);
+            if(cd(name, &act_path_inode, &act_path, s1) == -1) {
+                continue;
+            }
+        }
+
+        //ls
+        if (strcmp(command, "cd") == 0) {
+            char s1[60];    //pozadovana
+            command_recognized = 1;
+
+            sscanf(line, "%29s %59s", command, s1);
+            if(cd(name, &act_path_inode, &act_path, s1) == -1) {
+                continue;
+            }
+        }
+
+        //pwd
+        if (strcmp(command, "pwd") == 0) {
+            command_recognized = 1;
+            printf("%s\n",act_path);
         }
 
         //exit

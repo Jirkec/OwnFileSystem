@@ -19,4 +19,10 @@ int cp(char *name, pseudo_inode *act_path_inode, char *s1, char *s2, bool printM
 
 int mv(char *name, pseudo_inode *act_path_inode, char *s1, char *s2);
 
+int mkdir(char *name, pseudo_inode *act_path_inode, char *s1);
+
+int rmdir(char *name, pseudo_inode *act_path_inode, char *s1);
+
+int cd(char *name, pseudo_inode *act_path_inode, char *act_path, char *s1);
+
 #endif //MAIN_C_COMMANDS_H
