@@ -1,4 +1,4 @@
-# ZOSsemestral
-vytvoření vlastního filesystemu v C/C++<br>
+# Vlastní FILESystem v ANSI C
 Own filesystem in C/C++<br>
+
 for more see: Dokumentace.pdf
